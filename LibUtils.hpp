@@ -7,25 +7,23 @@
 #include <cstdint>
 
 namespace LibUtils {
-    static int Fastatoi(const char* str) {
-        int result = 0;
-        while (*str >= '0' && *str <= '9') {
-            result = result * 10 + (*str - '0');
+    static unsigned int Fastatoi(const char* str) {
+        unsigned int result = 0;
+        while (*str) {
+            result = result * 10u + (*str - '0');
             ++str;
         }
         return result;
     }
 
-    static long Faststrlen(const char* str) {
-        long len = 0;
-        while (str[len] != '\0') {
-            ++len;
-        }
-        return len;
+    static size_t Faststrlen(const char* str) {
+        const char* s = str;
+        while (*s) ++s;
+        return s - str;
     }
 
     static char* emit_u32(char *buf, char *end, uint32_t val) {
-        char tmp[11];
+        char tmp[10];
         char *out = tmp + sizeof(tmp);
     
         do {
@@ -44,7 +42,7 @@ namespace LibUtils {
 
     static int FastVsnprintf(char *buf, size_t size, const char *fmt, va_list ap) {
         char *p = buf;
-        char *const end = buf + (size ? size : (size_t)-1);
+        char* end = size ? (buf + size - 1) : buf;
     
         while (*fmt) {
             if (*fmt != '%') {
@@ -54,43 +52,44 @@ namespace LibUtils {
             }
             ++fmt;                          
             switch (*fmt++) {
+
             case 'd': {
                 unsigned int v = va_arg(ap, int);
                 p = emit_u32(p, end, (uint32_t)v);
                 break;
             }
+
             case 's': {
                 const char *s = va_arg(ap, const char *);
                 if (!s) s = "(null)";
-                while (*s) {
-                    if (p < end) *p = *s;
-                    ++p; ++s;
+                while (*s && p < end) {
+                    *p++ = *s++;
                 }
                 break;
             }
+
             case '%':
                 if (p < end) *p = '%';
                 ++p;
                 break;
-            default :
-                fprintf(stderr, "未知类型");
+
+            default:
                 break;
             }
         }
     
         if (size) {                       
-            if (p >= end) p = end - 1;
-            *p = '\0';
+            if (p > end) *end = '\0';
+            else *p = '\0';
         }
         return (int)(p - buf);              
     }
     
-    int FastSnprintf(char* buf, size_t size, const char* fmt, ...) {
+    static int FastSnprintf(char* buf, size_t size, const char* fmt, ...) {
         va_list ap;
         va_start(ap, fmt);
         int r = FastVsnprintf(buf, size, fmt, ap);
         va_end(ap);
         return r;
     }
-
 };
